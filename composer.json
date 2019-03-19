@@ -7,18 +7,23 @@
 	"authors"     : [
 		{
 			"name"    : "Andrey Savchenko",
-			"email"   : "contact@rarst.net",
-			"homepage": "http://www.Rarst.net/"
+			"homepage": "https://www.Rarst.net/"
 		}
 	],
 	"support"     : {
 		"issues": "https://github.com/Rarst/meadow/issues"
 	},
 	"require"     : {
-		"pimple/pimple"      : "~2.0",
-		"twig/twig"          : "~1.15"
+		"php": ">=7.0",
+		"pimple/pimple": "^3.2.3",
+		"twig/twig": "^2.6"
+	},
+	"require-dev": {
+		"pds/skeleton": "^1.0"
 	},
 	"autoload"    : {
-		"classmap": ["php/"]
+		"psr-4": {
+			"Rarst\\Meadow\\" : "src/"
+		}
 	}
 }

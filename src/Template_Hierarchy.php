@@ -3,10 +3,14 @@ namespace Rarst\Meadow;
 
 /**
  * Augment native template hierarchy with non-PHP template processing.
+ *
+ * @deprecated 0.2:1.0 Deprecated in favor of better hierarchy filter in WP 4.7+.
  */
 class Template_Hierarchy {
 
+	/** @var string[] $template_types Template type names to be used for dynamic hooks. */
 	public $template_types = array(
+		'embed',
 		'404',
 		'search',
 		'taxonomy',
@@ -15,6 +19,7 @@ class Template_Hierarchy {
 		'attachment',
 		'single',
 		'page',
+		'singular',
 		'category',
 		'tag',
 		'author',
@@ -56,8 +61,9 @@ class Template_Hierarchy {
 		if ( is_attachment() ) {
 			global $posts;
 
-			if ( ! empty( $posts ) && isset( $posts[0]->post_mime_type ) )
+			if ( ! empty( $posts ) && isset( $posts[0]->post_mime_type ) ) {
 				$this->mime_type = explode( '/', $posts[0]->post_mime_type );
+			}
 
 			add_filter( "{$this->mime_type[0]}_template", array( $this, 'query_template' ) );
 			add_filter( "{$this->mime_type[1]}_template", array( $this, 'query_template' ) );
@@ -76,6 +82,25 @@ class Template_Hierarchy {
 		$templates = array();
 
 		switch ( $type ) {
+			case 'embed':
+
+				$object = get_queried_object();
+
+				if ( ! empty( $object->post_type ) ) {
+
+					$post_format = get_post_format( $object );
+
+					if ( $post_format ) {
+						$templates[] = "embed-{$object->post_type}-{$post_format}.twig";
+					}
+
+					$templates[] = "embed-{$object->post_type}.twig";
+				}
+
+				$templates[] = 'embed.twig';
+
+				break;
+
 			case 'taxonomy':
 				$term = get_queried_object();
 
@@ -99,15 +124,16 @@ class Template_Hierarchy {
 			case 'single':
 				$object = get_queried_object();
 
-				if ( $object )
+				if ( $object ) {
 					$templates[] = "single-{$object->post_type}.twig";
+				}
 
 				$templates[] = 'single.twig';
 				break;
 
 			case 'page':
 				$page_id  = get_queried_object_id();
-				$template = get_page_template_slug();
+//				$template = get_page_template_slug();
 				$pagename = get_query_var( 'pagename' );
 
 				if ( ! $pagename && $page_id ) {
@@ -120,11 +146,13 @@ class Template_Hierarchy {
 //				if ( $template && 0 === validate_file( $template ) )
 //					$templates[] = $template;
 
-				if ( $pagename )
+				if ( $pagename ) {
 					$templates[] = "page-{$pagename}.twig";
+				}
 
-				if ( $page_id )
+				if ( $page_id ) {
 					$templates[] = "page-{$page_id}.twig";
+				}
 
 				$templates[] = 'page.twig';
 				break;
@@ -155,7 +183,7 @@ class Template_Hierarchy {
 			case 'archive':
 				$post_types = array_filter( (array) get_query_var( 'post_type' ) );
 
-				if ( count( $post_types ) == 1 ) {
+				if ( \count( $post_types ) === 1 ) {
 					$post_type   = reset( $post_types );
 					$templates[] = "archive-{$post_type}.twig";
 				}
@@ -167,12 +195,24 @@ class Template_Hierarchy {
 				$templates = array( "{$type}.twig" );
 		}
 
-		$template = locate_template( $templates );
+		$template = $this->locate_template( $templates );
 
 		if ( empty( $template ) ) {
 			$template = $fallback;
 		}
 
 		return apply_filters( 'meadow_query_template', $template, $type );
+	}
+
+	/**
+	 * Broken out for easier inheritance to customize lookup logic.
+	 *
+	 * @param array|string $templates
+	 *
+	 * @return string
+	 */
+	public function locate_template( $templates ) {
+
+		return locate_template( $templates );
 	}
 }
